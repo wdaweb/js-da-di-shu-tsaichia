@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eating Cat</title>
+    <style>
+        * {
+            margin: 0;
+        }
+
+        body {
+            background-color: bisque;
+            margin: 0;
+
+        }
+
+        #btn-start {
+            background-color: rgb(129, 85, 27);
+            color: azure;
+            position: absolute;
+            width: 100px;
+            top: 12%;
+            left: calc(50% - 75px);
+            font-family: 'Fredoka One', cursive;
+        }
+
+        #btn-start:hover {
+            background-color: rgb(77, 42, 14);
+            color: azure;
+            position: absolute;
+            text-align: center;
+            transform: scale(1.05, 1.05);
+            cursor: pointer;
+        }
+
+        .words {
+            font-family: '微軟正黑體', 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+            position: absolute;
+            top: 85%;
+            left: calc(50% - 120px);
+            text-align: center;
+        }
+
+
+        #game {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            top: 0%;
+            left: 50%;
+            transform: translate(-50%, 0%);
+            border-spacing: 0px 0px;
+            cursor: url('./images/cookies01.png') 50 50, auto;
+        }
+
+        #game:active {
+            cursor: url('./images/cookies02.png') 50 50, auto;
+        }
+
+        .hole {
+            width: 150px;
+            height: 130px;
+            position: absolute;
+            background: url(./images/box.png) no-repeat center/cover;
+        }
+
+        #b1 {
+            position: absolute;
+            top: 20%;
+            left: 30%;
+        }
+
+        #b2 {
+            position: absolute;
+            top: 20%;
+            left: 45%;
+        }
+
+        #b3 {
+            position: absolute;
+            top: 20%;
+            left: 60%;
+        }
+
+        #b4 {
+            position: absolute;
+            top: 40%;
+            left: 30%;
+        }
+
+        #b5 {
+            position: absolute;
+            top: 40%;
+            left: 45%;
+        }
+
+        #b6 {
+            position: absolute;
+            top: 40%;
+            left: 60%;
+        }
+
+        #b7 {
+            position: absolute;
+            top: 60%;
+            left: 30%;
+        }
+
+        #b8 {
+            position: absolute;
+            top: 60%;
+            left: 45%;
+        }
+
+        #b9 {
+            position: absolute;
+            top: 60%;
+            left: 60%;
+        }
+
+        .yay {
+            width: 150px;
+            background: url(./images/yay.gif) no-repeat center/cover;
+        }
+
+        .hungry {
+            width: 150px;
+            background: url(./images/hungry.gif) no-repeat center/cover;
+        }
+    </style>
+
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+
+</head>
+
+<body>
+    <table id="game">
+        <tr>
+            <td class="hole" id="b7"></td>
+            <td class="hole" id="b8"></td>
+            <td class="hole" id="b9"></td>
+        </tr>
+        <tr>
+            <td class="hole" id="b4"></td>
+            <td class="hole" id="b5"></td>
+            <td class="hole" id="b6"></td>
+        </tr>
+        <tr>
+            <td class="hole" id="b1"></td>
+            <td class="hole" id="b2"></td>
+            <td class="hole" id="b3"></td>
+        </tr>
+    </table>
+
+    <input type="button" value="PLAY" id="btn-start"> <br>
+    <div class="words">
+        目前分數: <span id="text-score">0</span>
+        剩餘時間: <span id="text-time">0</span>
+        <br>
+        最高分:<br>
+        玩家: <span id="text-highplayer">沒有人</span> <br>
+        分數: <span id="text-highscore">0</span>
+    </div>
+
+
+    <script>
+        const holes = document.getElementsByClassName("hole");
+        const btnStart = document.getElementById("btn-start");
+        const textScore = document.getElementById("text-score");
+        const textTime = document.getElementById("text-time");
+        const textHighPlayer = document.getElementById("text-highplayer");
+        const textHighScore = document.getElementById("text-highscore");
+        const cat = new Audio();
+        cat.src = "./cat.mp3";
+
+        // 分數
+        let score = 0;
+        // 是否在遊戲中
+        let inGame = false;
+        // 剩餘秒數
+        let timeleft = 10;
+        // 計時器
+        let timer = 0;
+        // 最高分
+        let highscore = { name: '', score: 0 }
+        // 將 localStorage 存的文字轉成可以使用的陣列
+        let storage = JSON.parse(localStorage.getItem("highscore"));
+        // 如果有分數紀錄
+        if (storage != null) {
+            // 將最高分記錄存入變數並修改網頁文字
+            highscore.name = storage.name;
+            textHighPlayer.innerText = highscore.name;
+            highscore.score = storage.score;
+            textHighScore.innerText = highscore.score;
+        }
+
+        btnStart.onclick = () => {
+            // 停用開始按鈕
+            btnStart.disabled = true;
+            // 設定每秒變換一次
+            timer = setInterval(game, 1000);
+            game();
+            // 重置分數
+            score = 0;
+            textScore.innerText = score;
+            // 設定狀態為遊戲中
+            inGame = true;
+            // 重設時間
+            timeleft = 10;
+            textTime.innerText = timeleft;
+        }
+
+        const game = () => {
+            // 清掉格子的 class
+            for (let hole of holes) {
+                hole.classList.remove("hungry");
+                hole.classList.remove("yay");
+            }
+
+            // 隨機抽三格，變紅色
+            for (let i = 0; i < 3; i++) {
+                const rand = Math.floor(Math.random() * 9);
+                holes[rand].classList.add("hungry");
+                console.log(holes[rand]);
+            }
+
+            // 時間減一
+            timeleft--;
+            textTime.innerText = timeleft;
+
+            // 如果時間到了
+            if (timeleft == 0) {
+                // 設定狀態為不在遊戲中
+                inGame = false;
+                // 停止計時器
+                clearInterval(timer);
+                // 清掉格子的 class
+                for (let hole of holes) {
+                    hole.classList.remove("hungry");
+                    hole.classList.remove("yay");
+
+                }
+                // 啟用開始按鈕
+                btnStart.disabled = false;
+                alert(`你得到 ${score} 分`);
+
+                // 如果沒有分數紀錄，或是大於目前分數
+                if (storage == null || score > highscore.score) {
+                    // rihai.play();
+                    // 輸入名字
+                    const input = prompt("恭喜最高分，請輸入名字");
+                    // 如果有輸入
+                    if (input != null && input.trim() != '') {
+                        // 將輸入的名字與分數存入變數
+                        highscore.score = score;
+                        highscore.name = input;
+                        // 修改最高分文字
+                        textHighPlayer.innerText = highscore.name;
+                        textHighScore.innerText = highscore.score;
+                        // 將最高分變數轉文字後存入 localStorage
+                        localStorage.setItem("highscore", JSON.stringify(highscore));
+                    }
+                }
+            }
+        }
+
+        for (let hole of holes) {
+            hole.onclick = () => {
+                // 如果在遊戲中且包含 hungry
+                if (inGame && hole.classList.contains("hungry")) {
+                    // 標記為按下去
+                    hole.classList.add("yay");
+                    hole.classList.remove("hungry");
+                    // 加一分
+                    score++;
+                    textScore.innerText = score;
+                }
+            }
+        }
+
+        document.onkeydown = (event) => {
+            const key = event.key;
+            // 如果按鍵式數字，且在遊戲中，數字為 1~9
+            if (!isNaN(key) && inGame && key > 0 && key < 10) {
+                // 找到對應的格子
+                const target = document.getElementById(`hole${key}`);
+                // 觸發點擊事件
+                target.click();
+            }
+        }
+    </script>
+</body>
+
+</html>
